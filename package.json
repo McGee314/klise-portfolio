@@ -5,12 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build",
+    "build": "tsc && vite build",
     "start": "node server.js",
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "vercel-build": "vite build"
+    "vercel-build": "vite build",
+    "build:server": "tsc --project tsconfig.server.json",
+    "postinstall": "npm run build:server"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
