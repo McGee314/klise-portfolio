@@ -1,26 +1,37 @@
 {
   "version": 2,
-  "functions": {
-    "server.ts": {
-      "runtime": "nodejs20.x"
+  "builds": [
+    {
+      "src": "server.ts",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
     }
-  },
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server.ts"
+      "dest": "server.ts"
     },
     {
       "src": "/uploads/(.*)",
-      "dest": "/server.ts"
+      "dest": "server.ts"
     },
     {
       "src": "/(.*\\.(js|css|png|jpg|jpeg|gif|webp|svg|ico))",
-      "dest": "/server.ts"
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      },
+      "dest": "server.ts"
     },
     {
       "src": "/(.*)",
-      "dest": "/server.ts"
+      "dest": "server.ts"
     }
   ],
   "env": {
