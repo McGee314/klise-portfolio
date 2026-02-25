@@ -9,16 +9,19 @@ import { authenticateToken } from '../middleware/auth';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, '../../uploads');
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    cb(null, uploadsDir);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// Configure multer based on environment
+const storage = process.env.NODE_ENV === 'production' 
+  ? multer.memoryStorage() // Use memory storage for serverless
+  : multer.diskStorage({
+      destination: (_req, _file, cb) => {
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        cb(null, uploadsDir);
+      },
+      filename: (_req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+      },
+    });
 
 const upload = multer({
   storage,
@@ -46,7 +49,24 @@ router.get('/', (req, res) => {
 // Create activity (Protected) - with file upload
 router.post('/', authenticateToken, upload.single('image'), (req, res) => {
   const { title, description, date, category } = req.body;
-  const image = req.file ? `/uploads/${req.file.filename}` : req.body.image;
+  
+  let image = req.body.image; // Fallback to URL
+  
+  if (req.file) {
+    if (process.env.NODE_ENV === 'production') {
+      // In production (Vercel), file uploads don't persist
+      // Return an info message but still allow creation with URL
+      if (!req.body.image) {
+        return res.status(400).json({ 
+          message: 'File uploads not supported in serverless environment. Please use image URLs instead.' 
+        });
+      }
+    } else {
+      // Development: use uploaded file
+      image = `/uploads/${req.file.filename}`;
+    }
+  }
+  
   try {
     const result = db.prepare(
       'INSERT INTO activities (title, description, date, image, category) VALUES (?, ?, ?, ?, ?)'

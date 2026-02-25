@@ -12,22 +12,27 @@ import contentRoutes from './server/routes/content';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function startServer() {
+async function createApp() {
   const app = express();
-  const PORT = 3000;
 
   app.use(cors());
   app.use(express.json());
 
-  // Serve uploaded files
-  const uploadsDir = path.join(__dirname, 'uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
+  // Serve uploaded files (for development only)
+  if (process.env.NODE_ENV !== 'production') {
+    const uploadsDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    app.use('/uploads', express.static(uploadsDir));
   }
-  app.use('/uploads', express.static(uploadsDir));
 
-  // Initialize Database
-  initializeDatabase();
+  // Initialize Database (will use in-memory for serverless)
+  try {
+    initializeDatabase();
+  } catch (error) {
+    console.warn('Database initialization warning:', error);
+  }
 
   // API Routes
   app.use('/api/auth', authRoutes);
@@ -48,7 +53,20 @@ async function startServer() {
     if (fs.existsSync(distPath)) {
       app.use(express.static(distPath));
       app.get('*', (req, res) => {
-        res.sendFile(path.join(distPath, 'index.html'));
+        if (req.path.startsWith('/api/')) {
+          res.status(404).json({ error: 'API endpoint not found' });
+        } else {
+          res.sendFile(path.join(distPath, 'index.html'));
+        }
+      });
+    } else {
+      // Fallback if dist doesn't exist
+      app.get('*', (req, res) => {
+        if (req.path.startsWith('/api/')) {
+          res.status(404).json({ error: 'API endpoint not found' });
+        } else {
+          res.status(404).send('Application not built. Please run build command.');
+        }
       });
     }
   }
@@ -56,27 +74,44 @@ async function startServer() {
   return app;
 }
 
-let app: any;
+let appPromise: Promise<express.Express> | null = null;
 
-// Initialize the app
-async function initApp() {
-  if (!app) {
-    app = await startServer();
-  }
-  return app;
-}
-
-// Export for Vercel
+// For Vercel serverless
 export default async function handler(req: any, res: any) {
-  const server = await initApp();
-  return server(req, res);
+  // Add CORS headers for Vercel
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization'
+  );
+
+  // Handle preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (!appPromise) {
+    appPromise = createApp();
+  }
+  
+  try {
+    const app = await appPromise;
+    return app(req, res);
+  } catch (error) {
+    console.error('Handler error:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 }
 
 // For local development
 if (process.env.NODE_ENV !== 'production') {
-  initApp().then((server) => {
-    server.listen(3000, '0.0.0.0', () => {
-      console.log(`Server running on http://localhost:3000`);
+  createApp().then((app) => {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, () => {
+      console.log(`Server running on http://localhost:${PORT}`);
     });
   });
 }

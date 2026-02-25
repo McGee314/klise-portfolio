@@ -1,7 +1,9 @@
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
 
-const db = new Database('klise.db');
+// Use in-memory database for production (Vercel), file-based for development
+const dbPath = process.env.NODE_ENV === 'production' ? ':memory:' : 'klise.db';
+const db = new Database(dbPath);
 
 export function initializeDatabase() {
   // Users Table

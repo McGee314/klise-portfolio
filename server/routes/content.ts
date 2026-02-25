@@ -9,16 +9,19 @@ import { authenticateToken } from '../middleware/auth';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const uploadsDir = path.resolve(__dirname, '../../uploads');
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-    cb(null, uploadsDir);
-  },
-  filename: (_req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + path.extname(file.originalname));
-  },
-});
+// Configure multer based on environment
+const storage = process.env.NODE_ENV === 'production' 
+  ? multer.memoryStorage() // Use memory storage for serverless
+  : multer.diskStorage({
+      destination: (_req, _file, cb) => {
+        if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
+        cb(null, uploadsDir);
+      },
+      filename: (_req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        cb(null, uniqueSuffix + path.extname(file.originalname));
+      },
+    });
 
 const upload = multer({
   storage,
@@ -67,18 +70,33 @@ router.put('/text', authenticateToken, (req, res) => {
 // Update image content (Protected) - with file upload
 router.put('/image', authenticateToken, upload.single('image'), (req, res) => {
   const { key } = req.body;
-  if (!req.file) {
-    return res.status(400).json({ message: 'No image file provided' });
+  
+  let newImage = req.body.image; // Fallback to URL
+  
+  if (req.file) {
+    if (process.env.NODE_ENV === 'production') {
+      // In production (Vercel), file uploads don't persist
+      return res.status(400).json({ 
+        message: 'File uploads not supported in serverless environment. Please use image URLs instead.' 
+      });
+    } else {
+      // Development: use uploaded file
+      newImage = `/uploads/${req.file.filename}`;
+    }
+  }
+  
+  if (!newImage) {
+    return res.status(400).json({ message: 'No image file or URL provided' });
   }
 
-  const newImage = `/uploads/${req.file.filename}`;
-
   try {
-    // Delete old uploaded image if exists
-    const existing = db.prepare('SELECT value FROM site_content WHERE key = ?').get(key) as any;
-    if (existing && existing.value && existing.value.startsWith('/uploads/')) {
-      const oldPath = path.join(uploadsDir, path.basename(existing.value));
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    // Delete old uploaded image if exists (only in development)
+    if (process.env.NODE_ENV !== 'production') {
+      const existing = db.prepare('SELECT value FROM site_content WHERE key = ?').get(key) as any;
+      if (existing && existing.value && existing.value.startsWith('/uploads/')) {
+        const oldPath = path.join(uploadsDir, path.basename(existing.value));
+        if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      }
     }
 
     const existingRow = db.prepare('SELECT * FROM site_content WHERE key = ?').get(key);
