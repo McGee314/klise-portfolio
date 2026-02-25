@@ -30,8 +30,10 @@ async function createApp() {
   // Initialize Database (will use in-memory for serverless)
   try {
     initializeDatabase();
+    console.log('✅ Database initialized successfully');
   } catch (error) {
-    console.warn('Database initialization warning:', error);
+    console.error('❌ Database initialization failed:', error);
+    // Don't throw error, let the app continue with empty database
   }
 
   // API Routes
@@ -93,16 +95,22 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  // Initialize app if not already done
   if (!appPromise) {
+    console.log('🚀 Initializing Express app for serverless...');
     appPromise = createApp();
   }
   
   try {
     const app = await appPromise;
+    console.log(`📡 ${req.method} ${req.url}`);
     return app(req, res);
   } catch (error) {
-    console.error('Handler error:', error);
-    return res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Handler error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong'
+    });
   }
 }
 
