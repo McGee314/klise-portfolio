@@ -18,7 +18,8 @@ export default function Login() {
       login(res.data.token, res.data.user);
       navigate('/admin');
     } catch (err: any) {
-      setError('Invalid credentials');
+      const msg = err?.response?.data?.message;
+      setError(msg || 'Invalid credentials');
     }
   };
 
