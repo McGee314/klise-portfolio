@@ -1,15 +1,54 @@
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { Camera, Film, ArrowRight } from 'lucide-react';
+import api from '../lib/api';
+
+interface SiteContent {
+  hero_title: string;
+  hero_subtitle: string;
+  hero_image: string;
+  intro_title: string;
+  intro_description: string;
+  intro_image: string;
+}
 
 export default function Home() {
+  const [content, setContent] = useState<SiteContent>({
+    hero_title: 'KLISE',
+    hero_subtitle: 'Photography and Cinematography Community',
+    hero_image: 'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=2070&auto=format&fit=crop',
+    intro_title: 'Capturing Life in Motion',
+    intro_description: "KLISE is more than just a club; it's a collective of visionaries, storytellers, and artists. We believe that every frame holds a story waiting to be told. Whether through the lens of a camera or the motion of film, we strive to capture the essence of the world around us.",
+    intro_image: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000&auto=format&fit=crop',
+  });
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const res = await api.get('/content');
+        setContent((prev) => ({
+          hero_title: res.data.hero_title || prev.hero_title,
+          hero_subtitle: res.data.hero_subtitle || prev.hero_subtitle,
+          hero_image: res.data.hero_image || prev.hero_image,
+          intro_title: res.data.intro_title || prev.intro_title,
+          intro_description: res.data.intro_description || prev.intro_description,
+          intro_image: res.data.intro_image || prev.intro_image,
+        }));
+      } catch (error) {
+        console.error('Failed to fetch site content', error);
+      }
+    };
+    fetchContent();
+  }, []);
+
   return (
     <div className="relative">
       {/* Hero Section */}
       <section className="relative h-[90vh] flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img
-            src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?q=80&w=2070&auto=format&fit=crop"
+            src={content.hero_image}
             alt="Cinematic Background"
             className="w-full h-full object-cover opacity-40"
           />
@@ -23,10 +62,10 @@ export default function Home() {
             transition={{ duration: 0.8, ease: "easeOut" }}
           >
             <h1 className="text-6xl md:text-8xl font-bold tracking-tighter mb-6 bg-clip-text text-transparent bg-gradient-to-r from-white via-zinc-200 to-zinc-500">
-              KLISE
+              {content.hero_title}
             </h1>
             <p className="text-xl md:text-2xl text-zinc-300 font-light tracking-wide mb-8">
-              Photography and Cinematography Community
+              {content.hero_subtitle}
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
@@ -57,11 +96,9 @@ export default function Home() {
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
             >
-              <h2 className="text-4xl font-bold mb-6">Capturing Life in Motion</h2>
+              <h2 className="text-4xl font-bold mb-6">{content.intro_title}</h2>
               <p className="text-zinc-400 text-lg leading-relaxed mb-6">
-                KLISE is more than just a club; it's a collective of visionaries, storytellers, and artists. 
-                We believe that every frame holds a story waiting to be told. Whether through the lens of a camera 
-                or the motion of film, we strive to capture the essence of the world around us.
+                {content.intro_description}
               </p>
               <div className="flex gap-8">
                 <div className="flex flex-col gap-2">
@@ -85,7 +122,7 @@ export default function Home() {
             >
               <div className="absolute -inset-4 bg-rose-600/20 rounded-2xl blur-xl" />
               <img
-                src="https://images.unsplash.com/photo-1516035069371-29a1b244cc32?q=80&w=1000&auto=format&fit=crop"
+                src={content.intro_image}
                 alt="Camera Lens"
                 className="relative rounded-2xl border border-white/10 shadow-2xl"
               />

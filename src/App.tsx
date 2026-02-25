@@ -16,6 +16,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/admin/Dashboard';
 import AdminActivities from './pages/admin/Activities';
 import AdminGallery from './pages/admin/Gallery';
+import AdminContent from './pages/admin/Content';
 
 export default function App() {
   return (
@@ -28,7 +29,9 @@ export default function App() {
           <Route path="/activities" element={<PublicLayout><Activities /></PublicLayout>} />
           <Route path="/gallery" element={<PublicLayout><Gallery /></PublicLayout>} />
           <Route path="/contact" element={<PublicLayout><Contact /></PublicLayout>} />
-          <Route path="/login" element={<Login />} />
+
+          {/* Admin Login - accessible only via /admin/login */}
+          <Route path="/admin/login" element={<Login />} />
 
           {/* Admin Routes */}
           <Route path="/admin" element={
@@ -49,6 +52,13 @@ export default function App() {
             <ProtectedRoute>
               <AdminLayout>
                 <AdminGallery />
+              </AdminLayout>
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/content" element={
+            <ProtectedRoute>
+              <AdminLayout>
+                <AdminContent />
               </AdminLayout>
             </ProtectedRoute>
           } />

@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Camera, Menu, X, Instagram, Mail } from 'lucide-react';
+import { Menu, X, Instagram, Mail } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '../lib/utils';
 
@@ -24,9 +24,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-20">
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="w-10 h-10 bg-rose-600 rounded-lg flex items-center justify-center group-hover:bg-rose-700 transition-colors">
-                <Camera className="text-white w-6 h-6" />
-              </div>
+              <img src="/logo.png" alt="KLISE" className="w-10 h-10 object-contain" />
               <span className="font-display font-bold text-2xl tracking-tighter">KLISE</span>
             </Link>
 
@@ -44,12 +42,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                   {link.name}
                 </Link>
               ))}
-              <Link
-                to="/login"
-                className="px-4 py-2 text-xs font-bold uppercase tracking-wider border border-white/20 rounded-full hover:bg-white hover:text-black transition-all"
-              >
-                Admin
-              </Link>
             </div>
 
             {/* Mobile Menu Button */}
@@ -85,13 +77,6 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
                   {link.name}
                 </Link>
               ))}
-              <Link
-                to="/login"
-                onClick={() => setIsMenuOpen(false)}
-                className="block px-3 py-3 text-zinc-400 hover:text-white"
-              >
-                Admin Login
-              </Link>
             </div>
           </motion.div>
         )}
@@ -108,7 +93,7 @@ export default function PublicLayout({ children }: { children: ReactNode }) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
             <div>
               <div className="flex items-center gap-2 mb-4">
-                <Camera className="text-rose-600 w-6 h-6" />
+                <img src="/logo.png" alt="KLISE" className="w-6 h-6 object-contain" />
                 <span className="font-display font-bold text-xl">KLISE</span>
               </div>
               <p className="text-zinc-500 text-sm leading-relaxed">

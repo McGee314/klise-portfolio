@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../lib/authContext';
-import { LayoutDashboard, Calendar, Image, LogOut, Camera } from 'lucide-react';
+import { LayoutDashboard, Calendar, Image, LogOut, FileText } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
@@ -11,13 +11,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/admin/login');
   };
 
   const navItems = [
     { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
     { name: 'Activities', path: '/admin/activities', icon: Calendar },
     { name: 'Gallery', path: '/admin/gallery', icon: Image },
+    { name: 'Homepage', path: '/admin/content', icon: FileText },
   ];
 
   return (
@@ -25,8 +26,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       {/* Sidebar */}
       <aside className="w-64 bg-black border-r border-white/10 hidden md:flex flex-col">
         <div className="h-20 flex items-center px-6 border-b border-white/10">
-          <Link to="/" className="flex items-center gap-2">
-            <Camera className="text-rose-600 w-6 h-6" />
+          <Link to="/admin" className="flex items-center gap-2">
+            <img src="/logo.png" alt="KLISE" className="w-8 h-8 object-contain" />
             <span className="font-display font-bold text-xl">KLISE Admin</span>
           </Link>
         </div>

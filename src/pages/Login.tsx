@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/authContext';
 import api from '../lib/api';
-import { Camera } from 'lucide-react';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -18,7 +17,7 @@ export default function Login() {
       const res = await api.post('/auth/login', { username, password });
       login(res.data.token, res.data.user);
       navigate('/admin');
-    } catch (err) {
+    } catch (err: any) {
       setError('Invalid credentials');
     }
   };
@@ -27,9 +26,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
       <div className="max-w-md w-full bg-black border border-white/10 rounded-2xl p-8">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-12 h-12 bg-rose-600 rounded-lg flex items-center justify-center mb-4">
-            <Camera className="text-white w-7 h-7" />
-          </div>
+          <img src="/logo.png" alt="KLISE" className="w-12 h-12 object-contain mb-4" />
           <h1 className="text-2xl font-bold">Admin Login</h1>
           <p className="text-zinc-500 text-sm">Enter your credentials to access the dashboard</p>
         </div>

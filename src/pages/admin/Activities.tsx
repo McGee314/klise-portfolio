@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
-import { Plus, Trash2, Edit2, X } from 'lucide-react';
+import { Plus, Trash2, Edit2, X, Upload } from 'lucide-react';
 
 interface Activity {
   id: number;
@@ -19,9 +19,11 @@ export default function AdminActivities() {
     title: '',
     description: '',
     date: '',
-    image: '',
     category: 'Photography'
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchActivities();
@@ -32,13 +34,36 @@ export default function AdminActivities() {
     setActivities(res.data);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('description', formData.description);
+      data.append('date', formData.date);
+      data.append('category', formData.category);
+      if (imageFile) {
+        data.append('image', imageFile);
+      }
+
       if (editingId) {
-        await api.put(`/activities/${editingId}`, formData);
+        await api.put(`/activities/${editingId}`, data, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       } else {
-        await api.post('/activities', formData);
+        await api.post('/activities', data, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
       }
       fetchActivities();
       closeModal();
@@ -61,18 +86,20 @@ export default function AdminActivities() {
         title: activity.title,
         description: activity.description,
         date: activity.date,
-        image: activity.image,
         category: activity.category
       });
+      setImagePreview(activity.image);
+      setImageFile(null);
     } else {
       setEditingId(null);
       setFormData({
         title: '',
         description: '',
         date: '',
-        image: '',
         category: 'Photography'
       });
+      setImagePreview('');
+      setImageFile(null);
     }
     setIsModalOpen(true);
   };
@@ -80,6 +107,8 @@ export default function AdminActivities() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingId(null);
+    setImageFile(null);
+    setImagePreview('');
   };
 
   return (
@@ -99,6 +128,7 @@ export default function AdminActivities() {
         <table className="w-full text-left">
           <thead className="bg-black/50 text-zinc-400 uppercase text-xs">
             <tr>
+              <th className="px-6 py-4">Image</th>
               <th className="px-6 py-4">Title</th>
               <th className="px-6 py-4">Date</th>
               <th className="px-6 py-4">Category</th>
@@ -108,6 +138,9 @@ export default function AdminActivities() {
           <tbody className="divide-y divide-white/5">
             {activities.map((activity) => (
               <tr key={activity.id} className="hover:bg-white/5 transition-colors">
+                <td className="px-6 py-4">
+                  <img src={activity.image} alt={activity.title} className="w-16 h-12 object-cover rounded" />
+                </td>
                 <td className="px-6 py-4 font-medium">{activity.title}</td>
                 <td className="px-6 py-4 text-zinc-400">{new Date(activity.date).toLocaleDateString()}</td>
                 <td className="px-6 py-4">
@@ -125,7 +158,7 @@ export default function AdminActivities() {
             ))}
             {activities.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-6 py-8 text-center text-zinc-500">No activities found.</td>
+                <td colSpan={5} className="px-6 py-8 text-center text-zinc-500">No activities found.</td>
               </tr>
             )}
           </tbody>
@@ -135,7 +168,7 @@ export default function AdminActivities() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="bg-zinc-900 w-full max-w-lg rounded-2xl border border-white/10 p-6">
+          <div className="bg-zinc-900 w-full max-w-lg rounded-2xl border border-white/10 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold">{editingId ? 'Edit Activity' : 'New Activity'}</h2>
               <button onClick={closeModal} className="text-zinc-400 hover:text-white"><X /></button>
@@ -185,19 +218,35 @@ export default function AdminActivities() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm text-zinc-400 mb-1">Image URL</label>
+                <label className="block text-sm text-zinc-400 mb-1">Image</label>
                 <input
-                  required
-                  type="url"
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 focus:border-rose-500 outline-none"
-                  placeholder="https://..."
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleImageChange}
+                  className="hidden"
                 />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-black border border-white/10 border-dashed rounded-lg px-3 py-6 focus:border-rose-500 outline-none hover:border-rose-500/50 transition-colors flex flex-col items-center gap-2 text-zinc-400"
+                >
+                  <Upload className="w-6 h-6" />
+                  <span className="text-sm">{imageFile ? imageFile.name : (editingId ? 'Click to change image' : 'Click to upload image')}</span>
+                </button>
+                {imagePreview && (
+                  <div className="mt-3">
+                    <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg border border-white/10" />
+                  </div>
+                )}
+                {!editingId && !imageFile && (
+                  <p className="text-xs text-rose-400 mt-1">* Image is required</p>
+                )}
               </div>
               <button
                 type="submit"
-                className="w-full bg-rose-600 text-white font-bold py-3 rounded-lg hover:bg-rose-700 transition-colors mt-2"
+                disabled={!editingId && !imageFile}
+                className="w-full bg-rose-600 text-white font-bold py-3 rounded-lg hover:bg-rose-700 transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {editingId ? 'Update Activity' : 'Create Activity'}
               </button>

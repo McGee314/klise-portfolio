@@ -1,0 +1,11 @@
+node_modules
+.git
+klise.db
+uploads/*.png
+uploads/*.jpg
+uploads/*.jpeg
+uploads/*.gif
+uploads/*.webp
+.env
+.env.local
+.vscode

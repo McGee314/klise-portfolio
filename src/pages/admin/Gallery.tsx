@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import api from '../../lib/api';
-import { Plus, Trash2, X } from 'lucide-react';
+import { Plus, Trash2, X, Upload } from 'lucide-react';
 
 interface GalleryItem {
   id: number;
@@ -14,9 +14,11 @@ export default function AdminGallery() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
-    image: '',
     category: 'Photography'
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchGallery();
@@ -27,10 +29,28 @@ export default function AdminGallery() {
     setItems(res.data);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!imageFile) return;
     try {
-      await api.post('/gallery', formData);
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('category', formData.category);
+      data.append('image', imageFile);
+
+      await api.post('/gallery', data, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       fetchGallery();
       closeModal();
     } catch (error) {
@@ -47,7 +67,9 @@ export default function AdminGallery() {
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setFormData({ title: '', image: '', category: 'Photography' });
+    setFormData({ title: '', category: 'Photography' });
+    setImageFile(null);
+    setImagePreview('');
   };
 
   return (
@@ -118,19 +140,35 @@ export default function AdminGallery() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-zinc-400 mb-1">Image URL</label>
+                <label className="block text-sm text-zinc-400 mb-1">Image</label>
                 <input
-                  required
-                  type="url"
-                  value={formData.image}
-                  onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                  className="w-full bg-black border border-white/10 rounded-lg px-3 py-2 focus:border-rose-500 outline-none"
-                  placeholder="https://..."
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  onChange={handleImageChange}
+                  className="hidden"
                 />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full bg-black border border-white/10 border-dashed rounded-lg px-3 py-6 focus:border-rose-500 outline-none hover:border-rose-500/50 transition-colors flex flex-col items-center gap-2 text-zinc-400"
+                >
+                  <Upload className="w-6 h-6" />
+                  <span className="text-sm">{imageFile ? imageFile.name : 'Click to upload image'}</span>
+                </button>
+                {imagePreview && (
+                  <div className="mt-3">
+                    <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg border border-white/10" />
+                  </div>
+                )}
+                {!imageFile && (
+                  <p className="text-xs text-rose-400 mt-1">* Image is required</p>
+                )}
               </div>
               <button
                 type="submit"
-                className="w-full bg-rose-600 text-white font-bold py-3 rounded-lg hover:bg-rose-700 transition-colors mt-2"
+                disabled={!imageFile}
+                className="w-full bg-rose-600 text-white font-bold py-3 rounded-lg hover:bg-rose-700 transition-colors mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Add to Gallery
               </button>

@@ -8,6 +8,7 @@ import { initializeDatabase } from './server/db';
 import authRoutes from './server/routes/auth';
 import activityRoutes from './server/routes/activities';
 import galleryRoutes from './server/routes/gallery';
+import contentRoutes from './server/routes/content';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,6 +19,13 @@ async function startServer() {
   app.use(cors());
   app.use(express.json());
 
+  // Serve uploaded files
+  const uploadsDir = path.join(__dirname, 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.use('/uploads', express.static(uploadsDir));
+
   // Initialize Database
   initializeDatabase();
 
@@ -25,6 +33,7 @@ async function startServer() {
   app.use('/api/auth', authRoutes);
   app.use('/api/activities', activityRoutes);
   app.use('/api/gallery', galleryRoutes);
+  app.use('/api/content', contentRoutes);
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
@@ -44,9 +53,30 @@ async function startServer() {
     }
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
+  return app;
 }
 
-startServer();
+let app: any;
+
+// Initialize the app
+async function initApp() {
+  if (!app) {
+    app = await startServer();
+  }
+  return app;
+}
+
+// Export for Vercel
+export default async function handler(req: any, res: any) {
+  const server = await initApp();
+  return server(req, res);
+}
+
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  initApp().then((server) => {
+    server.listen(3000, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:3000`);
+    });
+  });
+}
